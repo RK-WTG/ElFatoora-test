@@ -1,0 +1,290 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?><TEIF xmlns:ds="http://www.w3.org/2000/09/xmldsig#" controlingAgency="TTN" version="1.8.8">
+
+  <!-- INVOICE HEADER -->
+  <InvoiceHeader>
+    <!-- Sender: Invoice issuer (seller) -->
+    <MessageSenderIdentifier type="I-01">1557686RAM000</MessageSenderIdentifier>
+    <!-- Receiver: TTN (Tunisie TradeNet) platform -->
+    <MessageRecieverIdentifier>TTN</MessageRecieverIdentifier>
+  </InvoiceHeader>
+
+  <!-- INVOICE BODY -->
+  <InvoiceBody>
+
+    <!-- BGM - Document Info -->
+    <Bgm>
+      <DocumentIdentifier>FAC-2024-003</DocumentIdentifier>
+      <DocumentType code="I-11">Facture</DocumentType>
+    </Bgm>
+
+    <!-- DTM - Date/Time -->
+    <Dtm>
+      <DateText format="ddMMyy" functionCode="I-31">250126</DateText>
+      <DateText format="ddMMyy" functionCode="I-33">240226</DateText>
+    </Dtm>
+
+    <!-- PARTNER SECTION -->
+    <PartnerSection>
+      <!-- Seller (I-61) -->
+      <PartnerDetails functionCode="I-61">
+        <Nad>
+          <PartnerIdentifier type="I-01">1557686RAM000</PartnerIdentifier>
+          <PartnerName nameType="Qualification">Bati Plus SARL</PartnerName>
+        </Nad>
+      </PartnerDetails>
+
+      <!-- Buyer (I-62) -->
+      <PartnerDetails functionCode="I-62">
+        <Nad>
+          <PartnerIdentifier type="I-02">06543210</PartnerIdentifier>
+          <PartnerName nameType="Qualification">Jlassi Hichem</PartnerName>
+          
+        </Nad>
+      </PartnerDetails>
+    </PartnerSection>
+
+    <!-- LIN SECTION - Line Items -->
+    <LinSection>
+      
+      <Lin>
+        <ItemIdentifier>ITEM-001</ItemIdentifier>
+        <LinImd>
+          <ItemCode>baee0fe6-a02d-4827-a375-040ae4ad68d</ItemCode>
+          <ItemDescription>Ciment Portland CEM II 42.5</ItemDescription>
+        </LinImd>
+        <LinQty>
+          <Quantity measurementUnit="PCE">50</Quantity>
+        </LinQty>
+        <LinTax>
+          <TaxTypeName code="I-1602">TVA</TaxTypeName>
+          <TaxDetails>
+            <TaxRate>19</TaxRate>
+          </TaxDetails>
+        </LinTax>
+        <LinMoa>
+          <MoaDetails>
+            <!-- Line HT Amount -->
+            <Moa amountTypeCode="I-171" currencyCodeList="ISO_4217">
+              <Amount currencyIdentifier="TND">1400.000</Amount>
+            </Moa>
+          </MoaDetails>
+          <MoaDetails>
+            <!-- Line Tax Amount -->
+            <Moa amountTypeCode="I-173" currencyCodeList="ISO_4217">
+              <Amount currencyIdentifier="TND">266.000</Amount>
+            </Moa>
+          </MoaDetails>
+          <MoaDetails>
+            <!-- Line TTC Amount -->
+            <Moa amountTypeCode="I-174" currencyCodeList="ISO_4217">
+              <Amount currencyIdentifier="TND">1666.000</Amount>
+            </Moa>
+          </MoaDetails>
+        </LinMoa>
+      </Lin>
+      <Lin>
+        <ItemIdentifier>ITEM-002</ItemIdentifier>
+        <LinImd>
+          <ItemCode>6653da55-6cf4-425b-8c57-38fbdeba981</ItemCode>
+          <ItemDescription>Fer a beton HA 12mm</ItemDescription>
+        </LinImd>
+        <LinQty>
+          <Quantity measurementUnit="PCE">25</Quantity>
+        </LinQty>
+        <LinTax>
+          <TaxTypeName code="I-1602">TVA</TaxTypeName>
+          <TaxDetails>
+            <TaxRate>19</TaxRate>
+          </TaxDetails>
+        </LinTax>
+        <LinMoa>
+          <MoaDetails>
+            <!-- Line HT Amount -->
+            <Moa amountTypeCode="I-171" currencyCodeList="ISO_4217">
+              <Amount currencyIdentifier="TND">2125.000</Amount>
+            </Moa>
+          </MoaDetails>
+          <MoaDetails>
+            <!-- Line Tax Amount -->
+            <Moa amountTypeCode="I-173" currencyCodeList="ISO_4217">
+              <Amount currencyIdentifier="TND">403.750</Amount>
+            </Moa>
+          </MoaDetails>
+          <MoaDetails>
+            <!-- Line TTC Amount -->
+            <Moa amountTypeCode="I-174" currencyCodeList="ISO_4217">
+              <Amount currencyIdentifier="TND">2528.750</Amount>
+            </Moa>
+          </MoaDetails>
+        </LinMoa>
+      </Lin>
+      <Lin>
+        <ItemIdentifier>ITEM-003</ItemIdentifier>
+        <LinImd>
+          <ItemCode>e8260396-1cb8-4a52-8fd3-418c4ee4e8c</ItemCode>
+          <ItemDescription>Brique creuse 12 trous</ItemDescription>
+        </LinImd>
+        <LinQty>
+          <Quantity measurementUnit="PCE">800</Quantity>
+        </LinQty>
+        <LinTax>
+          <TaxTypeName code="I-1602">TVA</TaxTypeName>
+          <TaxDetails>
+            <TaxRate>19</TaxRate>
+          </TaxDetails>
+        </LinTax>
+        <LinMoa>
+          <MoaDetails>
+            <!-- Line HT Amount -->
+            <Moa amountTypeCode="I-171" currencyCodeList="ISO_4217">
+              <Amount currencyIdentifier="TND">760.000</Amount>
+            </Moa>
+          </MoaDetails>
+          <MoaDetails>
+            <!-- Line Tax Amount -->
+            <Moa amountTypeCode="I-173" currencyCodeList="ISO_4217">
+              <Amount currencyIdentifier="TND">144.400</Amount>
+            </Moa>
+          </MoaDetails>
+          <MoaDetails>
+            <!-- Line TTC Amount -->
+            <Moa amountTypeCode="I-174" currencyCodeList="ISO_4217">
+              <Amount currencyIdentifier="TND">904.400</Amount>
+            </Moa>
+          </MoaDetails>
+        </LinMoa>
+      </Lin>
+      <Lin>
+        <ItemIdentifier>ITEM-004</ItemIdentifier>
+        <LinImd>
+          <ItemCode>91d1da92-90e1-42ea-b3b8-e7c9e6de400</ItemCode>
+          <ItemDescription>Main doeuvre maconnerie</ItemDescription>
+        </LinImd>
+        <LinQty>
+          <Quantity measurementUnit="PCE">25</Quantity>
+        </LinQty>
+        <LinTax>
+          <TaxTypeName code="I-1602">TVA</TaxTypeName>
+          <TaxDetails>
+            <TaxRate>19</TaxRate>
+          </TaxDetails>
+        </LinTax>
+        <LinMoa>
+          <MoaDetails>
+            <!-- Line HT Amount -->
+            <Moa amountTypeCode="I-171" currencyCodeList="ISO_4217">
+              <Amount currencyIdentifier="TND">3000.000</Amount>
+            </Moa>
+          </MoaDetails>
+          <MoaDetails>
+            <!-- Line Tax Amount -->
+            <Moa amountTypeCode="I-173" currencyCodeList="ISO_4217">
+              <Amount currencyIdentifier="TND">570.000</Amount>
+            </Moa>
+          </MoaDetails>
+          <MoaDetails>
+            <!-- Line TTC Amount -->
+            <Moa amountTypeCode="I-174" currencyCodeList="ISO_4217">
+              <Amount currencyIdentifier="TND">3570.000</Amount>
+            </Moa>
+          </MoaDetails>
+        </LinMoa>
+      </Lin>
+      <Lin>
+        <ItemIdentifier>ITEM-005</ItemIdentifier>
+        <LinImd>
+          <ItemCode>82986a13-48ec-4faa-b11a-ec3e5ff751b</ItemCode>
+          <ItemDescription>Coffrage et ferraillage</ItemDescription>
+        </LinImd>
+        <LinQty>
+          <Quantity measurementUnit="PCE">20</Quantity>
+        </LinQty>
+        <LinTax>
+          <TaxTypeName code="I-1602">TVA</TaxTypeName>
+          <TaxDetails>
+            <TaxRate>19</TaxRate>
+          </TaxDetails>
+        </LinTax>
+        <LinMoa>
+          <MoaDetails>
+            <!-- Line HT Amount -->
+            <Moa amountTypeCode="I-171" currencyCodeList="ISO_4217">
+              <Amount currencyIdentifier="TND">1465.000</Amount>
+            </Moa>
+          </MoaDetails>
+          <MoaDetails>
+            <!-- Line Tax Amount -->
+            <Moa amountTypeCode="I-173" currencyCodeList="ISO_4217">
+              <Amount currencyIdentifier="TND">278.350</Amount>
+            </Moa>
+          </MoaDetails>
+          <MoaDetails>
+            <!-- Line TTC Amount -->
+            <Moa amountTypeCode="I-174" currencyCodeList="ISO_4217">
+              <Amount currencyIdentifier="TND">1743.350</Amount>
+            </Moa>
+          </MoaDetails>
+        </LinMoa>
+      </Lin>
+    </LinSection>
+
+    <!-- INVOICE MOA - Invoice Amounts -->
+    <InvoiceMoa>
+      <!-- Total HT (before tax) -->
+      <AmountDetails>
+        <Moa amountTypeCode="I-176" currencyCodeList="ISO_4217">
+          <Amount currencyIdentifier="TND">8750.000</Amount>
+        </Moa>
+      </AmountDetails>
+
+      <!-- Total TVA -->
+      <AmountDetails>
+        <Moa amountTypeCode="I-181" currencyCodeList="ISO_4217">
+          <Amount currencyIdentifier="TND">1662.500</Amount>
+        </Moa>
+      </AmountDetails>
+
+      <!-- Total TTC (with tax) -->
+      <AmountDetails>
+        <Moa amountTypeCode="I-180" currencyCodeList="ISO_4217">
+          <Amount currencyIdentifier="TND">10413.500</Amount>
+        </Moa>
+      </AmountDetails>
+
+      
+
+      
+      <!-- Timbre Fiscal -->
+      <AmountDetails>
+        <Moa amountTypeCode="I-178" currencyCodeList="ISO_4217">
+          <Amount currencyIdentifier="TND">1.000</Amount>
+        </Moa>
+      </AmountDetails>
+    </InvoiceMoa>
+
+    <!-- INVOICE TAX - Tax Summary -->
+    <InvoiceTax>
+      
+      <InvoiceTaxDetails>
+        <Tax>
+          <TaxTypeName code="I-1602">TVA</TaxTypeName>
+          <TaxDetails>
+            <TaxRate>19</TaxRate>
+          </TaxDetails>
+        </Tax>
+        <!-- Taxable Amount (HT) -->
+        <AmountDetails>
+          <Moa amountTypeCode="I-177" currencyCodeList="ISO_4217">
+            <Amount currencyIdentifier="TND">8750.000</Amount>
+          </Moa>
+        </AmountDetails>
+        <!-- Tax Amount -->
+        <AmountDetails>
+          <Moa amountTypeCode="I-178" currencyCodeList="ISO_4217">
+            <Amount currencyIdentifier="TND">1662.500</Amount>
+          </Moa>
+        </AmountDetails>
+      </InvoiceTaxDetails>
+    </InvoiceTax>
+  </InvoiceBody>
+<ds:Signature Id="id-96f890ccae7b0bdb47dbbf71e121ec24"><ds:SignedInfo><ds:CanonicalizationMethod Algorithm="http://www.w3.org/2001/10/xml-exc-c14n#"/><ds:SignatureMethod Algorithm="http://www.w3.org/2001/04/xmldsig-more#rsa-sha256"/><ds:Reference Id="r-id-96f890ccae7b0bdb47dbbf71e121ec24-1" URI=""><ds:Transforms><ds:Transform Algorithm="http://www.w3.org/TR/1999/REC-xpath-19991116"><ds:XPath>not(ancestor-or-self::ds:Signature)</ds:XPath></ds:Transform><ds:Transform Algorithm="http://www.w3.org/2001/10/xml-exc-c14n#"/></ds:Transforms><ds:DigestMethod Algorithm="http://www.w3.org/2001/04/xmlenc#sha256"/><ds:DigestValue>QP/iZzjrhC0w8h1WAeEMxvQ/be5m5u3ROkcQ2rnuO8Q=</ds:DigestValue></ds:Reference><ds:Reference Type="http://uri.etsi.org/01903#SignedProperties" URI="#xades-id-96f890ccae7b0bdb47dbbf71e121ec24"><ds:Transforms><ds:Transform Algorithm="http://www.w3.org/2001/10/xml-exc-c14n#"/></ds:Transforms><ds:DigestMethod Algorithm="http://www.w3.org/2001/04/xmlenc#sha256"/><ds:DigestValue>nTWolyElhy9A7c0zgl6QLqUpw91zmT8wj+GosIvZZ3w=</ds:DigestValue></ds:Reference></ds:SignedInfo><ds:SignatureValue Id="value-id-96f890ccae7b0bdb47dbbf71e121ec24">EtmPuegd2vTLSr/4dxan+SVsscYewDxqFDF5ubu2Wv+R5WH0KHHoVSm0wFqM38Dyl+glh63o+hS+46ls42nRcg9mrSbiW/EJnqBCN5e1fPCWg2TEXha793Fzi4Dhbk81K2zDtS5TXraAYPJOpjKeayucSm9dLJxTTfNd6Z/HTdWVsiAa2gsxeNJ7FU1siGzXkGjistAQXiFFJRSu9nKg0h1B/TC16XWBf1z16q7lMW16wsiiO+wkgUU3BNX3+GdO1Xed71r/r/K92I5f2a7ywFoaJaioXN1Dx2pRIRuRulKQMwA5xgjW0vl5KuaUHs7lV7vPWmFBebtM3EErB0gEfA==</ds:SignatureValue><ds:KeyInfo><ds:X509Data><ds:X509Certificate>MIIFjjCCBRSgAwIBAgIUe0ENOd7gNipEPrE1qcePueKZeSswCgYIKoZIzj0EAwIwdDEsMCoGA1UEAwwjVHVuVHJ1c3QgUXVhbGlmaWVkIENBIENsaWVudCBFQ0MgRzExNzA1BgNVBAoMLkFHRU5DRSBOQVRJT05BTEUgREUgQ0VSVElGSUNBVElPTiBFTEVDVFJPTklRVUUxCzAJBgNVBAYTAlROMB4XDTI2MDIxODA5MTc0NFoXDTI4MDIxODA5MTc0M1owggEKMScwJQYJKoZIhvcNAQkBFhhyYWNoaWQua2hhbGlmYUBnbWFpbC5jb20xUDBOBgoJkiaJk/IsZAEBDEBkNTM4MTg2OWZiNWYzZGQwNmQxYjkzMzVmMTE3ODIxMGVhNDY3MjZiZDc2ZjhkMzBjYWUzMGQ5ZjI1NWE1ZWFjMTowOAYDVQQDDDHYsdi02YrZgNmA2YDZgNmA2YDYryDYrtmE2YrZgdmO2YDZgNmA2YDZgNmA2YDZgNipMR0wGwYDVQQqDBTYsdi02YrZgNmA2YDZgNmA2YDYrzElMCMGA1UEBAwc2K7ZhNmK2YHZjtmA2YDZgNmA2YDZgNmA2YDYqTELMAkGA1UEBhMCVE4wggEiMA0GCSqGSIb3DQEBAQUAA4IBDwAwggEKAoIBAQC+Wp1/6DOjbqQrHGnMQpouXTExjB7y4HTRCZrcCaA9gUqrJHNz/ZTOuZdvW8H2cWoMEoKqbl56enKif1rpU3+D0B1E96NQphUKuloE4oMxx6uAk5/tJM5ARFnyjit97M+lj0zLVpeArmTkPNTYm+i1huZwrRnjqJby+Wr5FIiu3TCOidZXA37WEj2SkWMNEcwibc+FX9W8no/tl3oM93EN8jnBrQC3mqHKJzZy3RlB5NgH1wr3eaofLjxrCaSN+pctN3ydFq2GGqZptCnNYgaUHZ6z6HGVYvLUXGMGrkO0da10k2ifxQkP/1k4vxrEbiprndslQ8/uS6K1/0INMryTAgMBAAGjggIfMIICGzAMBgNVHRMBAf8EAjAAMB8GA1UdIwQYMBaAFEkFoHGZ/FOxPkInMAH9R6wjd53jMHcGCCsGAQUFBwEBBGswaTBEBggrBgEFBQcwAoY4aHR0cDovL3d3dy50dW50cnVzdC50bi9wdWIvdHVudHJ1c3RxdWFsaWZpZWRjYWVjYy1nMS5jcnQwIQYIKwYBBQUHMAGGFWh0dHA6Ly92YS50dW50cnVzdC50bjAjBgNVHREEHDAagRhyYWNoaWQua2hhbGlmYUBnbWFpbC5jb20wLAYDVR0gBCUwIzAIBgYEAI96AQIwDAYKYIYUAQIHAQUBAjAJBgcEAIvsQAECMB0GA1UdJQQWMBQGCCsGAQUFBwMCBggrBgEFBQcDBDCBiAYIKwYBBQUHAQMEfDB6MAgGBgQAjkYBATAIBgYEAI5GAQQwEwYGBACORgEGMAkGBwQAjkYBBgEwTwYGBACORgEFMEUwQxY9aHR0cHM6Ly93d3cudHVudHJ1c3QudG4vcHViL3Bkcy10dW50cnVzdHF1YWxpZmllZGNhZWNjLWcxLnBkZhMCZW4wRQYDVR0fBD4wPDA6oDigNoY0aHR0cDovL2NybC50dW50cnVzdC50bi90dW50cnVzdHF1YWxpZmllZGNhZWNjLWcxLmNybDAdBgNVHQ4EFgQUD5ooezg2/n2DnEgyW3Mae6D6ptcwDgYDVR0PAQH/BAQDAgbAMAoGCCqGSM49BAMCA2gAMGUCMCZTyMzdLyRow9t2JZrGYikFUFFC+3r5OyLRAKaWBHf/jzp44jH17ku/uKAY6SuNrQIxAIdHfdKAdc1EpwV5CGQhlPHe0raAEY2AHXvPRozWHYzQjfqTiBWvTk5ub06GDlozjw==</ds:X509Certificate></ds:X509Data></ds:KeyInfo><ds:Object><xades:QualifyingProperties xmlns:xades="http://uri.etsi.org/01903/v1.3.2#" Target="#id-96f890ccae7b0bdb47dbbf71e121ec24"><xades:SignedProperties Id="xades-id-96f890ccae7b0bdb47dbbf71e121ec24"><xades:SignedSignatureProperties><xades:SigningTime>2026-06-09T23:33:59Z</xades:SigningTime><xades:SigningCertificateV2><xades:Cert><xades:CertDigest><ds:DigestMethod Algorithm="http://www.w3.org/2001/04/xmlenc#sha512"/><ds:DigestValue>TgfAhRHEZjjKg8qSOU3PWxn/VE+mgVaH+6ISTzNVb1dsFTa++fxqRWL7zpXfFGUcKdHZX/ly7XJlgwaYSk0mvQ==</ds:DigestValue></xades:CertDigest><xades:IssuerSerialV2>MIGQMHikdjB0MSwwKgYDVQQDDCNUdW5UcnVzdCBRdWFsaWZpZWQgQ0EgQ2xpZW50IEVDQyBHMTE3MDUGA1UECgwuQUdFTkNFIE5BVElPTkFMRSBERSBDRVJUSUZJQ0FUSU9OIEVMRUNUUk9OSVFVRTELMAkGA1UEBhMCVE4CFHtBDTne4DYqRD6xNanHj7nimXkr</xades:IssuerSerialV2></xades:Cert></xades:SigningCertificateV2></xades:SignedSignatureProperties><xades:SignedDataObjectProperties><xades:DataObjectFormat ObjectReference="#r-id-96f890ccae7b0bdb47dbbf71e121ec24-1"><xades:MimeType>text/xml</xades:MimeType></xades:DataObjectFormat></xades:SignedDataObjectProperties></xades:SignedProperties></xades:QualifyingProperties></ds:Object></ds:Signature></TEIF>
