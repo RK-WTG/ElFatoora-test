@@ -1,0 +1,15 @@
+{
+  "name": "elfatoora-test-saveefact",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Test ponctuel du dépôt SOAP saveEfact sur la plateforme de test ElFatoora (TTN)",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "describe": "DESCRIBE_ONLY=1 node test-saveefact.js",
+    "send": "node test-saveefact.js"
+  },
+  "dependencies": {
+    "soap": "^1.1.5"
+  }
+}
