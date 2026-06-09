@@ -75,4 +75,5 @@ const server = http.createServer(async (req, res) => {
   return text(res, 404, 'Not found. Routes: /describe, /send');
 });
 
-server.listen(PORT, () => console.log('test-saveefact en écoute sur :' + PORT + ' (WSDL ' + WSDL + ')'));
+const HOST = process.env.HOSTNAME || '0.0.0.0';
+server.listen(PORT, HOST, () => console.log('test-saveefact en écoute sur ' + HOST + ':' + PORT + ' (WSDL ' + WSDL + ')'));

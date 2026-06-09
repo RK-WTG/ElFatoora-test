@@ -1,17 +1,26 @@
-# Image de test saveEfact ElFatoora — à déployer via Dokploy (sort par l'IP whitelistée Hetzner)
-FROM node:20-alpine
+FROM node:22-alpine AS base
 
+# --- Dependencies (prod) ---
+FROM base AS deps
 WORKDIR /app
+COPY package.json package-lock.json ./
+RUN npm ci --omit=dev
 
-# Dépendances
-COPY package.json ./
-RUN npm install --omit=dev
+# --- Runner ---
+FROM base AS runner
+WORKDIR /app
+ENV NODE_ENV=production
 
-# Code + facture signée embarquée
-COPY lib.js server.js test-saveefact.js ./
-COPY TEIF_FAC_2024_003_signe.xml ./
+RUN addgroup --system --gid 1001 nodejs && \
+    adduser --system --uid 1001 appuser
+
+COPY --from=deps /app/node_modules ./node_modules
+COPY --chown=appuser:nodejs package.json server.js lib.js test-saveefact.js TEIF_FAC_2024_003_signe.xml ./
+
+USER appuser
 
 EXPOSE 3000
+ENV PORT=3000
+ENV HOSTNAME="0.0.0.0"
 
-# Service HTTP : GET /describe (sans envoi) puis GET /send (envoi)
 CMD ["node", "server.js"]
