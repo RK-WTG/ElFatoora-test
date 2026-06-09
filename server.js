@@ -21,7 +21,7 @@
 
 const http = require('http');
 const fs = require('fs');
-const { runSaveEfact } = require('./lib');
+const { runSaveEfact, runConsultEfact } = require('./lib');
 
 const PORT = parseInt(process.env.PORT || '3000', 10);
 const WSDL = process.env.ELFATOORA_WSDL || 'https://test.elfatoora.tn/ElfatouraServices/EfactService?wsdl';
@@ -44,7 +44,8 @@ const server = http.createServer(async (req, res) => {
       'Test saveEfact ElFatoora\n\n' +
       'GET /describe  → affiche la signature de l\'opération (sans envoi)\n' +
       'GET /send      → envoie ' + XML_PATH + ' à ' + WSDL +
-      (TRIGGER_TOKEN ? '  (requiert ?token=...)' : '') + '\n');
+      (TRIGGER_TOKEN ? '  (requiert ?token=...)' : '') + '\n' +
+      'GET /consult   → consultEfact ; ?idSaveEfact=... ou ?documentNumber=...\n');
   }
 
   if (path === '/describe') {
@@ -72,7 +73,27 @@ const server = http.createServer(async (req, res) => {
     return text(res, ok ? 200 : 502, log);
   }
 
-  return text(res, 404, 'Not found. Routes: /describe, /send');
+  if (path === '/consult') {
+    const idSaveEfact = url.searchParams.get('idSaveEfact');
+    const documentNumber = url.searchParams.get('documentNumber');
+    const criteria = {};
+    if (idSaveEfact) criteria.idSaveEfact = parseInt(idSaveEfact, 10);
+    if (documentNumber) criteria.documentNumber = documentNumber;
+    if (!idSaveEfact && !documentNumber) {
+      return text(res, 400, 'Précisez ?idSaveEfact=... ou ?documentNumber=...');
+    }
+    const { ok, log } = await runConsultEfact({
+      wsdl: WSDL,
+      login: process.env.ELFATOORA_LOGIN || '',
+      password: process.env.ELFATOORA_PASSWORD || '',
+      matricule: process.env.ELFATOORA_MATRICULE || '',
+      criteria,
+      insecure: INSECURE,
+    });
+    return text(res, ok ? 200 : 502, log);
+  }
+
+  return text(res, 404, 'Not found. Routes: /describe, /send, /consult');
 });
 
 const HOST = process.env.HOSTNAME || '0.0.0.0';

@@ -80,4 +80,55 @@ async function runSaveEfact(opts) {
   return { ok, log: lines.join('\n') };
 }
 
-module.exports = { runSaveEfact };
+async function runConsultEfact(opts) {
+  const { wsdl, login = '', password = '', matricule = '', criteria = {}, insecure = true } = opts;
+  const lines = [];
+  const log = (...a) => lines.push(a.join(' '));
+  const sep = (t) => log('\n' + '='.repeat(70) + '\n' + t + '\n' + '='.repeat(70));
+  let ok = false;
+  if (insecure) process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
+
+  sep('consultEfact');
+  log('WSDL      :', wsdl);
+  log('matricule :', matricule || '*** MANQUANT ***');
+  log('critère   :', JSON.stringify(criteria));
+
+  let client;
+  try {
+    client = await soap.createClientAsync(wsdl, { wsdl_options: { rejectUnauthorized: !insecure } });
+  } catch (e) {
+    log('ECHEC createClient : ' + e.message);
+    return { ok, log: lines.join('\n') };
+  }
+
+  try {
+    const [result] = await client.consultEfactAsync({ arg0: login, arg1: password, arg2: matricule, arg3: criteria });
+    const list = result && result.return ? (Array.isArray(result.return) ? result.return : [result.return]) : [];
+    log('\n--- RÉSULTAT (' + list.length + ' facture(s)) ---');
+    list.forEach((r, i) => {
+      log(`\n[${i + 1}] documentNumber=${r.documentNumber || ''}  idSaveEfact=${r.idSaveEfact || ''}`);
+      log(`    generatedRef (réf TTN) : ${r.generatedRef || '(pas encore attribuée)'}`);
+      log(`    dateProcess=${r.dateProcess || ''}  amount=${r.amount || ''}  amountTax=${r.amountTax || ''}`);
+      const acks = r.listAcknowlegments ? (Array.isArray(r.listAcknowlegments) ? r.listAcknowlegments : [r.listAcknowlegments]) : [];
+      if (acks.length) {
+        log('    Acquittements :');
+        acks.forEach((a) => {
+          const errs = a.errors ? (Array.isArray(a.errors) ? a.errors : [a.errors]) : [];
+          if (errs.length) errs.forEach((er) => log(`      ❌ [${er.errorId}] ${er.errorDescription}`));
+          else log(`      ✅ ack ${a.dateAck || ''} (sans erreur)`);
+        });
+      }
+      const atts = r.listAttachement ? (Array.isArray(r.listAttachement) ? r.listAttachement : [r.listAttachement]) : [];
+      if (atts.length) log('    Pièces jointes : ' + atts.map((a) => a.nameAttach).join(', '));
+      if (r.xmlContent) log('    xmlContent : ' + String(r.xmlContent).length + ' car. base64 (XML final signé TTN + QR)');
+    });
+    log('\n--- RÉPONSE BRUTE ---\n' + client.lastResponse);
+    ok = true;
+  } catch (e) {
+    log('\n--- ERREUR / FAULT ---\n' + e.message);
+    if (client.lastResponse) log('\n--- RÉPONSE BRUTE ---\n' + client.lastResponse);
+  }
+  return { ok, log: lines.join('\n') };
+}
+
+module.exports = { runSaveEfact, runConsultEfact };
