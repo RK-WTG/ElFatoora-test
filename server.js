@@ -35,6 +35,15 @@ function text(res, code, body) {
   res.end(body);
 }
 
+function readBody(req) {
+  return new Promise((resolve, reject) => {
+    const chunks = [];
+    req.on('data', (c) => chunks.push(c));
+    req.on('end', () => resolve(Buffer.concat(chunks)));
+    req.on('error', reject);
+  });
+}
+
 const server = http.createServer(async (req, res) => {
   const url = new URL(req.url, 'http://localhost');
   const path = url.pathname;
@@ -45,6 +54,7 @@ const server = http.createServer(async (req, res) => {
       'GET /describe  → affiche la signature de l\'opération (sans envoi)\n' +
       'GET /send      → envoie ' + XML_PATH + ' à ' + WSDL +
       (TRIGGER_TOKEN ? '  (requiert ?token=...)' : '') + '\n' +
+      'POST /send     → envoie le XML signé du body (raw XML, ou JSON {xml}/{xmlBase64})\n' +
       'GET /consult   → consultEfact ; ?idSaveEfact=... ou ?documentNumber=...\n');
   }
 
@@ -58,8 +68,23 @@ const server = http.createServer(async (req, res) => {
       return text(res, 403, 'Token invalide. Ajoutez ?token=... (voir TRIGGER_TOKEN).');
     }
     let xml;
-    try { xml = fs.readFileSync(XML_PATH); }
-    catch (e) { return text(res, 500, 'XML introuvable: ' + XML_PATH + ' — ' + e.message); }
+    if (req.method === 'POST') {
+      // XML signé fourni dans le body (raw XML, ou JSON {xml} / {xmlBase64})
+      try {
+        const raw = await readBody(req);
+        const ct = (req.headers['content-type'] || '').toLowerCase();
+        if (ct.includes('application/json')) {
+          const j = JSON.parse(raw.toString('utf8'));
+          xml = j.xmlBase64 ? Buffer.from(j.xmlBase64, 'base64') : Buffer.from(j.xml, 'utf8');
+        } else {
+          xml = raw; // raw XML bytes
+        }
+        if (!xml || !xml.length) return text(res, 400, 'Body vide : fournissez le XML signé.');
+      } catch (e) { return text(res, 400, 'Body illisible : ' + e.message); }
+    } else {
+      try { xml = fs.readFileSync(XML_PATH); }
+      catch (e) { return text(res, 500, 'XML introuvable: ' + XML_PATH + ' — ' + e.message); }
+    }
 
     const { ok, log } = await runSaveEfact({
       wsdl: WSDL,
