@@ -1,44 +1,61 @@
 # Test saveEfact — dépôt d'une facture signée sur ElFatoora (test)
 
 But : envoyer une facture **déjà signée** à la plateforme de test ElFatoora via l'opération SOAP `saveEfact`
-et observer la réponse → valider (a) connectivité/authentification et (b) si TTN **accepte la signature**.
+et observer la réponse → valider (a) connectivité/authentification, (b) conformité XSD, et (c) si TTN
+**accepte la signature** (selon la voie de signature et l'autorisation du signataire).
 
 > ⚠️ La plateforme filtre par IP. L'appel doit sortir par l'**IP whitelistée du serveur Hetzner** (`37.27.65.254`).
 > On déploie donc ce test **via Dokploy** (qui tourne sur ce serveur) → l'egress passe par la bonne IP.
 
+URL déployée (Dokploy) :
+**`https://elfatoora-back-cyketi-03c36c-37-27-65-254.traefik.me`**
+
 ## Contenu
-- `server.js` — service HTTP (routes `/describe` et `/send`) — **pour Dokploy**
+- `server.js` — service HTTP (routes ci-dessous) — **pour Dokploy**
+- `lib.js` — logique partagée `saveEfact` / `consultEfact`
 - `test-saveefact.js` — variante CLI (si un jour accès shell direct)
-- `lib.js` — logique partagée saveEfact
 - `Dockerfile`, `.dockerignore`, `package.json`
-- `TEIF_FAC_2024_003_signe.xml` — facture signée embarquée (émetteur matricule `1234567ABC`)
+- XML embarqués dans l'image (émetteur = matricule complet `1557686RAM000`) :
+  | Fichier | Voie de signature | Cert (n° série) |
+  |---|---|---|
+  | `TEIF_FAC_2024_003_1557686RAM000_v3_DIGIGO_signed.xml` | DigiGO (cloud TunTrust) | `7B410D39…` — **accepté** |
+  | `TEIF_FAC_2024_003_1557686RAM000_v3_USB_signed.xml` | Clé USB (QSign local) | `0BB3F842…` — `SERV09` tant que non activé côté TTN |
+  | `TEIF_FAC_2024_003_1557686RAM000_v3_unsigned.xml` | — (gabarit non signé, accepté par le noyau) | — |
+
+## Routes
+
+| Méthode / Route | Rôle |
+|---|---|
+| `GET /` ou `/health` | page d'aide + liste des routes |
+| `GET /describe` | récupère le WSDL et affiche la **signature de l'opération** (n'envoie rien) |
+| `GET /send-digigo` | dépose la facture signée **DigiGO** (`…v3_DIGIGO_signed.xml`) |
+| `GET /send-usb` | dépose la facture signée **clé USB** (`…v3_USB_signed.xml`) |
+| `GET /send` | dépose le XML par défaut (`XML_PATH`, = DigiGO) ; protégé par `TRIGGER_TOKEN` si défini |
+| `POST /send` | dépose le **XML signé fourni dans le body** (raw XML, ou JSON `{xml}` / `{xmlBase64}`) |
+| `GET /consult` | `consultEfact` ; `?idSaveEfact=...` ou `?documentNumber=...` → réf TTN, acquittements, XML final |
+
+Chaque appel `/send*` crée un **nouveau dépôt** (TTN attribue un nouvel `idSaveEfact` à chaque fois).
+
+### Lecture du résultat
+- **Succès** : `Facture enregistree avec ID: XXXXXXX … conforme a la version 1.8.8 du xsd`.
+- **Échec** : bloc `ERREUR / SOAP FAULT` avec le code (ex. `SERV09 — Signataire non autorisé`, `CONTRL05`, `SERV01`…).
+- `saveEfact` n'est qu'un accusé : la **réf TTN** (`generatedRef`) et les acquittements viennent ensuite via `GET /consult`.
 
 ## Déploiement via Dokploy
 
-1. **Source** : créer une *Application* Dokploy pointant sur ce dossier.
-   - Soit via un dépôt Git (pousser ce dossier `test-saveefact/`),
-   - soit en copiant ces fichiers dans un service Docker (build type **Dockerfile**).
-2. **Build** : type **Dockerfile** (présent à la racine du dossier). Port exposé : **3000**.
-3. **Variables d'environnement** (onglet Environment de l'app Dokploy) :
+1. **Source** : *Application* Dokploy pointant sur ce dossier (dépôt Git `RK-WTG/ElFatoora-test`).
+2. **Build** : type **Dockerfile** (à la racine). Port exposé : **3000**. Le push sur `main` redéploie automatiquement.
+3. **Variables d'environnement** (onglet Environment) :
    | Variable | Valeur |
    |---|---|
-   | `ELFATOORA_LOGIN` | login du compte de test |
+   | `ELFATOORA_LOGIN` | login du compte de test (`WEBTGFE`) |
    | `ELFATOORA_PASSWORD` | mot de passe |
-   | `ELFATOORA_MATRICULE` | `1234567ABC` (= émetteur du XML) |
+   | `ELFATOORA_MATRICULE` | `1557686RAM000` (= émetteur des XML) |
    | `ELFATOORA_WSDL` | `https://test.elfatoora.tn/ElfatouraServices/EfactService?wsdl` *(défaut)* |
-   | `INSECURE_TLS` | `1` *(accepte cert auto-signé du test)* |
-   | `TRIGGER_TOKEN` | *(optionnel)* un secret pour protéger `/send` |
-4. **Déployer**, puis ouvrir l'URL exposée par Dokploy :
-   - `GET /describe` → récupère le WSDL et affiche la **signature de l'opération** (confirme les noms de paramètres, **sans envoi**).
-   - `GET /send` → **envoie** la facture signée et renvoie le journal complet (requête SOAP + réponse / fault).
-     - Si `TRIGGER_TOKEN` est défini : `GET /send?token=VOTRE_TOKEN`.
-5. La sortie est aussi visible dans les **logs** du conteneur (Dokploy → Logs).
-
-## Lecture du résultat
-- **Réponse `saveEfact`** = une chaîne (message succès/échec).
-- En cas d'**erreur de signature**, TTN renvoie un message/acquittement négatif → c'est le point clé
-  (rappel : cette signature échouait en validation **DSS locale** avec `HASH_FAILURE` ; on vérifie ici le réel).
-- `saveEfact` n'est qu'un accusé : la **réf TTN** (`generatedRef`) et les acquittements viennent ensuite via `consultEfact`.
+   | `INSECURE_TLS` | `1` *(accepte le cert auto-signé du test)* |
+   | `XML_PATH` | *(défaut)* `./TEIF_FAC_2024_003_1557686RAM000_v3_DIGIGO_signed.xml` |
+   | `TRIGGER_TOKEN` | *(optionnel)* un secret pour protéger `GET /send` |
+4. **Déployer**, puis ouvrir les URLs (cf. tableau des routes).
 
 ## Si `/describe` montre des paramètres ≠ `arg0..arg3`
 Ajouter la variable d'env `ARG_NAMES`, ex. `ARG_NAMES=login,password,matricule,documentEfact`, puis redéployer.
@@ -47,6 +64,20 @@ Ajouter la variable d'env `ARG_NAMES`, ex. `ARG_NAMES=login,password,matricule,d
 ```bash
 npm install
 DESCRIBE_ONLY=1 node test-saveefact.js
-ELFATOORA_LOGIN=... ELFATOORA_PASSWORD=... ELFATOORA_MATRICULE=1234567ABC \
-  node test-saveefact.js ./TEIF_FAC_2024_003_signe.xml
+ELFATOORA_LOGIN=... ELFATOORA_PASSWORD=... ELFATOORA_MATRICULE=1557686RAM000 \
+  node test-saveefact.js ./TEIF_FAC_2024_003_1557686RAM000_v3_DIGIGO_signed.xml
+```
+
+## Exemples curl
+```bash
+BASE=https://elfatoora-back-cyketi-03c36c-37-27-65-254.traefik.me
+
+curl -sS "$BASE/send-digigo"          # dépose la voie DigiGO
+curl -sS "$BASE/send-usb"             # dépose la voie clé USB
+curl -sS "$BASE/consult?idSaveEfact=2026232"   # statut / réf TTN d'un dépôt
+
+# dépose un XML signé arbitraire depuis le poste :
+curl -sS -X POST -H "Content-Type: application/xml" \
+  --data-binary @TEIF_FAC_2024_003_1557686RAM000_v3_USB_signed.xml \
+  "$BASE/send"
 ```
