@@ -31,7 +31,7 @@ const ARG_NAMES = (process.env.ARG_NAMES || 'arg0,arg1,arg2,arg3').split(',');
 const TRIGGER_TOKEN = process.env.TRIGGER_TOKEN || '';
 
 // XML embarqués dans l'image — un par voie de signature (cf. Dockerfile COPY)
-const XML_DIGIGO = './TEIF_FAC_2024_003_1557686RAM000_v3_signed.xml';
+const XML_DIGIGO = './TEIF_FAC_2024_003_1557686RAM000_v3_DIGIGO_signed.xml';
 const XML_USB = './TEIF_FAC_2024_003_1557686RAM000_v3_USB_signed.xml';
 
 async function depose(res, xmlPath) {
