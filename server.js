@@ -30,6 +30,26 @@ const INSECURE = process.env.INSECURE_TLS !== '0';
 const ARG_NAMES = (process.env.ARG_NAMES || 'arg0,arg1,arg2,arg3').split(',');
 const TRIGGER_TOKEN = process.env.TRIGGER_TOKEN || '';
 
+// XML embarqués dans l'image — un par voie de signature (cf. Dockerfile COPY)
+const XML_DIGIGO = './TEIF_FAC_2024_003_1557686RAM000_v3_signed.xml';
+const XML_USB = './TEIF_FAC_2024_003_1557686RAM000_v3_USB_signed.xml';
+
+async function depose(res, xmlPath) {
+  let xml;
+  try { xml = fs.readFileSync(xmlPath); }
+  catch (e) { return text(res, 500, 'XML introuvable: ' + xmlPath + ' — ' + e.message); }
+  const { ok, log } = await runSaveEfact({
+    wsdl: WSDL,
+    login: process.env.ELFATOORA_LOGIN || '',
+    password: process.env.ELFATOORA_PASSWORD || '',
+    matricule: process.env.ELFATOORA_MATRICULE || '',
+    xml,
+    insecure: INSECURE,
+    argNames: ARG_NAMES,
+  });
+  return text(res, ok ? 200 : 502, log);
+}
+
 function text(res, code, body) {
   res.writeHead(code, { 'Content-Type': 'text/plain; charset=utf-8' });
   res.end(body);
@@ -55,8 +75,13 @@ const server = http.createServer(async (req, res) => {
       'GET /send      → envoie ' + XML_PATH + ' à ' + WSDL +
       (TRIGGER_TOKEN ? '  (requiert ?token=...)' : '') + '\n' +
       'POST /send     → envoie le XML signé du body (raw XML, ou JSON {xml}/{xmlBase64})\n' +
+      'GET /send-digigo → dépose la facture signée DigiGO (cert 7B410D39…)\n' +
+      'GET /send-usb    → dépose la facture signée clé USB (cert 0BB3F842…)\n' +
       'GET /consult   → consultEfact ; ?idSaveEfact=... ou ?documentNumber=...\n');
   }
+
+  if (path === '/send-digigo') return depose(res, XML_DIGIGO);
+  if (path === '/send-usb') return depose(res, XML_USB);
 
   if (path === '/describe') {
     const { log } = await runSaveEfact({ wsdl: WSDL, insecure: INSECURE, describeOnly: true });

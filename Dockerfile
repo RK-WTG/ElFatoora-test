@@ -16,7 +16,8 @@ RUN addgroup --system --gid 1001 nodejs && \
 
 COPY --from=deps /app/node_modules ./node_modules
 COPY --chown=appuser:nodejs package.json server.js lib.js test-saveefact.js \
-     TEIF_FAC_2024_003_1557686RAM000_v3_signed.xml ./
+     TEIF_FAC_2024_003_1557686RAM000_v3_signed.xml \
+     TEIF_FAC_2024_003_1557686RAM000_v3_USB_signed.xml ./
 
 USER appuser
 
