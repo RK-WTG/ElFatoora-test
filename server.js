@@ -92,7 +92,7 @@ const server = http.createServer(async (req, res) => {
     return text(res, 200, log);
   }
 
-  if (path === '/send') {
+  if (path === '/send' || path === '/tuntrust/send') {
     if (TRIGGER_TOKEN && url.searchParams.get('token') !== TRIGGER_TOKEN) {
       return text(res, 403, 'Token invalide. Ajoutez ?token=... (voir TRIGGER_TOKEN).');
     }
@@ -127,7 +127,7 @@ const server = http.createServer(async (req, res) => {
     return text(res, ok ? 200 : 502, log);
   }
 
-  if (path === '/consult') {
+  if (path === '/consult' || path === '/tuntrust/consult') {
     const idSaveEfact = url.searchParams.get('idSaveEfact');
     const documentNumber = url.searchParams.get('documentNumber');
     const criteria = {};
@@ -206,7 +206,7 @@ function log(m,c){L.innerHTML+=(c?'<span class="'+c+'">'+m+'</span>':m)+"\\n";}
 let state={};
 async function run(){
   document.getElementById('go').disabled=true;L.innerHTML='';document.getElementById('qr').innerHTML='';
-  const w=window.open('about:blank','digigo','width=520,height=720'); // ouvert DANS le geste (anti-bloqueur)
+  const w=window.open('about:blank','digigo','width=520,height=760,left='+Math.max(0,((screen.width-520)/2|0))+',top='+Math.max(0,((screen.height-760)/2|0))); // ouvert DANS le geste (anti-bloqueur), centre
   try{
     log('1) Preparation (recuperation cert + hash)...');
     let r=await fetch('/tuntrust/prepare',{method:'POST'});let p=await r.json();
@@ -223,13 +223,13 @@ async function run(){
     let c=await r.json();if(!c.ok)throw new Error(c.error);
     log('   XML signe ('+c.signedXml.length+' o)','ok');
     log('4) Depot saveEfact...');
-    r=await fetch('/send',{method:'POST',headers:{'Content-Type':'application/xml'},body:c.signedXml});
+    r=await fetch('/tuntrust/send',{method:'POST',headers:{'Content-Type':'application/xml'},body:c.signedXml});
     let dep=await r.text();
     const idm=dep.match(/ID:\\s*(\\d+)/);log('   '+(idm?'ID '+idm[1]:'reponse: '+dep.slice(0,200)),idm?'ok':'ko');
     if(!idm)return;
     log('5) Consultation (ref TTN + QR)...');
     await new Promise(s=>setTimeout(s,9000));
-    r=await fetch('/consult?idSaveEfact='+idm[1]);let con=await r.text();
+    r=await fetch('/tuntrust/consult?idSaveEfact='+idm[1]);let con=await r.text();
     const ref=con.match(/generatedRef[^:]*:\\s*(\\S+)/)||con.match(/<generatedRef>([^<]+)/);
     log('   '+(ref?'ref TTN = '+ref[1]:'pas encore de ref (validation en cours)'),ref?'ok':'');
     log('TERMINE.','ok');
