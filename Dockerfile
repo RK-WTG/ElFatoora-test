@@ -15,9 +15,10 @@ RUN addgroup --system --gid 1001 nodejs && \
     adduser --system --uid 1001 appuser
 
 COPY --from=deps /app/node_modules ./node_modules
-COPY --chown=appuser:nodejs package.json server.js lib.js test-saveefact.js \
+COPY --chown=appuser:nodejs package.json server.js lib.js test-saveefact.js digigo.js \
      TEIF_FAC_2024_003_1557686RAM000_v3_DIGIGO_signed.xml \
-     TEIF_FAC_2024_003_1557686RAM000_v3_USB_signed.xml ./
+     TEIF_FAC_2024_003_1557686RAM000_v3_USB_signed.xml \
+     TEIF_FAC_2024_003_1557686RAM000_v3_unsigned_unpretty.xml ./
 
 USER appuser
 
