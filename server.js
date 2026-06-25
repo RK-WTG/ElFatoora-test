@@ -205,15 +205,17 @@ const L=document.getElementById('log');
 function log(m,c){L.innerHTML+=(c?'<span class="'+c+'">'+m+'</span>':m)+"\\n";}
 let state={};
 async function run(){
-  document.getElementById('go').disabled=true;L.innerHTML='';
+  document.getElementById('go').disabled=true;L.innerHTML='';document.getElementById('qr').innerHTML='';
+  const w=window.open('about:blank','digigo','width=520,height=720'); // ouvert DANS le geste (anti-bloqueur)
   try{
     log('1) Preparation (recuperation cert + hash)...');
     let r=await fetch('/tuntrust/prepare',{method:'POST'});let p=await r.json();
     if(!p.ok)throw new Error(p.error);
     state={xml:p.xml,precomputed:p.precomputed,docId:p.docId};
     log('   docId='+p.docId+'  hash='+p.precomputed.signedInfoHash.slice(0,24)+'...','ok');
-    log('2) Ouverture du popup TunTrust (faites PIN + OTP)...');
-    const w=window.open(p.authorizeUrl,'digigo','width=520,height=720');
+    log('2) PIN + OTP dans le popup TunTrust (OTP par email)...');
+    if(w&&!w.closed){w.location.href=p.authorizeUrl;}
+    else{document.getElementById('qr').innerHTML='<p><a href="'+p.authorizeUrl+'" target="digigo" style="font-size:16px">Popup bloque : cliquez ICI pour ouvrir TunTrust</a></p>';log('   popup bloque -> lien manuel affiche ci-dessous','ko');}
     const jwt=await waitJwt();
     log('   JWT recu','ok');
     log('3) signHash + assemblage du XML signe DigiGO...');
