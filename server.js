@@ -213,7 +213,8 @@ function log(m,c){L.innerHTML+=(c?'<span class="'+c+'">'+m+'</span>':m)+"\\n";}
 let state={};
 async function run(){
   document.getElementById('go').disabled=true;L.innerHTML='';document.getElementById('qr').innerHTML='';
-  const w=window.open('about:blank','digigo','width=520,height=760,left='+Math.max(0,((screen.width-520)/2|0))+',top='+Math.max(0,((screen.height-760)/2|0))); // ouvert DANS le geste (anti-bloqueur), centre
+  const PW=720,PH=860; // taille popup TunTrust (la page DigiGO debordait en 520x760)
+  const w=window.open('about:blank','digigo','width='+PW+',height='+PH+',scrollbars=yes,resizable=yes,left='+Math.max(0,((screen.width-PW)/2|0))+',top='+Math.max(0,((screen.height-PH)/2|0))); // ouvert DANS le geste (anti-bloqueur), centre
   try{
     log('1) Preparation (recuperation cert + hash)...');
     let r=await fetch('/tuntrust/prepare',{method:'POST'});let p=await r.json();
