@@ -26,7 +26,11 @@ const digigo = require('./digigo');
 
 // TEIF non signe (unpretty) servi par le flux DigiGO ; on substitue un numero unique.
 const TEIF_UNSIGNED = process.env.TEIF_UNSIGNED_PATH || './TEIF_FAC_2024_003_1557686RAM000_v3_unsigned_unpretty.xml';
-let lastSignedXml = ''; // dernier XML signe DigiGO (diagnostic)
+// Artefacts du DERNIER parcours DigiGO (memoire), pour fournir le jeu de fichiers a TunTrust.
+let lastUnsignedXml = ''; // TEIF non signe envoye (avec docId unique substitue)
+let lastSignedXml = '';   // XML signe DigiGO/TunTrust (avant depot)
+let lastFinalXml = '';    // XML final signe TTN (+ RefTtnVal/QR), recupere via consultEfact
+let lastDocId = '';       // docId de ce parcours (nom des fichiers)
 
 const PORT = parseInt(process.env.PORT || '3000', 10);
 const WSDL = process.env.ELFATOORA_WSDL || 'https://test.elfatoora.tn/ElfatouraServices/EfactService?wsdl';
@@ -137,7 +141,7 @@ const server = http.createServer(async (req, res) => {
     if (!idSaveEfact && !documentNumber) {
       return text(res, 400, 'Précisez ?idSaveEfact=... ou ?documentNumber=...');
     }
-    const { ok, log } = await runConsultEfact({
+    const { ok, log, finalXmlB64 } = await runConsultEfact({
       wsdl: WSDL,
       login: process.env.ELFATOORA_LOGIN || '',
       password: process.env.ELFATOORA_PASSWORD || '',
@@ -145,7 +149,19 @@ const server = http.createServer(async (req, res) => {
       criteria,
       insecure: INSECURE,
     });
+    if (finalXmlB64) { try { lastFinalXml = Buffer.from(finalXmlB64, 'base64').toString('utf8'); } catch (_) {} }
     return text(res, ok ? 200 : 502, log);
+  }
+
+  // ===== Telechargement des 3 fichiers du parcours de signature (pour TunTrust) =====
+  if (path === '/tuntrust/files/unsigned') return download(res, (lastDocId || 'facture') + '_1_non-signe.xml', lastUnsignedXml, 'application/xml');
+  if (path === '/tuntrust/files/signed')   return download(res, (lastDocId || 'facture') + '_2_signe-tuntrust.xml', lastSignedXml, 'application/xml');
+  if (path === '/tuntrust/files/final')     return download(res, (lastDocId || 'facture') + '_3_final-ttn-qr.xml', lastFinalXml, 'application/xml');
+  if (path === '/tuntrust/files/qr') {
+    const m = lastFinalXml.match(/<ReferenceCEV>([A-Za-z0-9+/=]+)<\/ReferenceCEV>/);
+    if (!m) return text(res, 404, 'QR indisponible : lancez un parcours /tuntrust/test validé d\'abord.');
+    res.writeHead(200, { 'Content-Type': 'image/png', 'Content-Disposition': 'attachment; filename="' + (lastDocId || 'facture') + '_qr.png"' });
+    return res.end(Buffer.from(m[1], 'base64'));
   }
 
   // ============ Voie DigiGO ============
@@ -155,6 +171,7 @@ const server = http.createServer(async (req, res) => {
       const docId = 'FAC-DIGIGO-' + Date.now();
       xml = xml.replace(/<DocumentIdentifier>[^<]*<\/DocumentIdentifier>/, `<DocumentIdentifier>${docId}</DocumentIdentifier>`);
       const { authorizeUrl, precomputed } = await digigo.prepare(xml);
+      lastUnsignedXml = xml; lastDocId = docId; lastFinalXml = ''; // nouveau parcours
       return json(res, 200, { ok: true, docId, authorizeUrl, xml, precomputed });
     } catch (e) { return json(res, 500, { ok: false, error: String((e && e.message) || e) }); }
   }
@@ -189,12 +206,18 @@ const server = http.createServer(async (req, res) => {
     return res.end(TEST_PAGE);
   }
 
-  return text(res, 404, 'Not found. Routes: /describe, /send, /consult, /tuntrust/test');
+  return text(res, 404, 'Not found. Routes: /describe, /send, /consult, /tuntrust/test, /tuntrust/files/{unsigned,signed,final,qr}');
 });
 
 function json(res, code, obj) {
   res.writeHead(code, { 'Content-Type': 'application/json; charset=utf-8' });
   res.end(JSON.stringify(obj));
+}
+
+function download(res, filename, body, type) {
+  if (!body) return text(res, 404, 'Aucun contenu : lancez d\'abord un parcours /tuntrust/test (et attendez la validation pour le fichier final).');
+  res.writeHead(200, { 'Content-Type': type + '; charset=utf-8', 'Content-Disposition': 'attachment; filename="' + filename + '"' });
+  res.end(body);
 }
 
 const TEST_PAGE = `<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8">
@@ -240,7 +263,12 @@ async function run(){
     await new Promise(s=>setTimeout(s,9000));
     r=await fetch('/tuntrust/consult?idSaveEfact='+idm[1]);let con=await r.text();
     const ref=con.match(/<generatedRef>([^<]+)/);
-    if(ref&&ref[1]){log('   ref TTN = '+ref[1],'ok');var cev=con.match(/<ReferenceCEV>([A-Za-z0-9+\\/=]+)/);if(cev)document.getElementById('qr').innerHTML='<h3>QR ElFatoora</h3><img src="data:image/png;base64,'+cev[1]+'">';log('FACTURE DIGIGO VALIDEE.','ok');}
+    if(ref&&ref[1]){log('   ref TTN = '+ref[1],'ok');var cev=con.match(/<ReferenceCEV>([A-Za-z0-9+\\/=]+)/);if(cev)document.getElementById('qr').innerHTML='<h3>QR ElFatoora</h3><img src="data:image/png;base64,'+cev[1]+'">';log('FACTURE DIGIGO VALIDEE.','ok');
+      document.getElementById('qr').innerHTML+='<h3>Fichiers du parcours de signature</h3><ul>'+
+        '<li><a href="/tuntrust/files/unsigned" download>1 - TEIF non signe</a></li>'+
+        '<li><a href="/tuntrust/files/signed" download>2 - XML signe TunTrust (DigiGO)</a></li>'+
+        '<li><a href="/tuntrust/files/final" download>3 - XML final TTN + QR</a></li>'+
+        '<li><a href="/tuntrust/files/qr" download>QR (PNG)</a></li></ul>';}
     else log('   pas encore de ref (validation en cours, reconsulter)','');
   }catch(e){log('ERREUR: '+(e.message||e),'ko');}
   document.getElementById('go').disabled=false;

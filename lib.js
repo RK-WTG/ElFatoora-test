@@ -86,6 +86,8 @@ async function runConsultEfact(opts) {
   const log = (...a) => lines.push(a.join(' '));
   const sep = (t) => log('\n' + '='.repeat(70) + '\n' + t + '\n' + '='.repeat(70));
   let ok = false;
+  let finalXmlB64 = null;   // XML final signé TTN (+ RefTtnVal/QR), base64
+  let generatedRef = null;  // réf TTN
   if (insecure) process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
 
   sep('consultEfact');
@@ -121,6 +123,13 @@ async function runConsultEfact(opts) {
       const atts = r.listAttachement ? (Array.isArray(r.listAttachement) ? r.listAttachement : [r.listAttachement]) : [];
       if (atts.length) log('    Pièces jointes : ' + atts.map((a) => a.nameAttach).join(', '));
       if (r.xmlContent) log('    xmlContent : ' + String(r.xmlContent).length + ' car. base64 (XML final signé TTN + QR)');
+      // Capture du XML final TTN (1re facture qui en a un) : pièce jointe en priorité, sinon xmlContent.
+      if (!finalXmlB64) {
+        const att = atts.find((a) => a.fileoutContent);
+        if (att) finalXmlB64 = String(att.fileoutContent);
+        else if (r.xmlContent) finalXmlB64 = String(r.xmlContent);
+      }
+      if (!generatedRef && r.generatedRef) generatedRef = r.generatedRef;
     });
     log('\n--- RÉPONSE BRUTE ---\n' + client.lastResponse);
     ok = true;
@@ -128,7 +137,7 @@ async function runConsultEfact(opts) {
     log('\n--- ERREUR / FAULT ---\n' + e.message);
     if (client.lastResponse) log('\n--- RÉPONSE BRUTE ---\n' + client.lastResponse);
   }
-  return { ok, log: lines.join('\n') };
+  return { ok, log: lines.join('\n'), finalXmlB64, generatedRef };
 }
 
 module.exports = { runSaveEfact, runConsultEfact };
