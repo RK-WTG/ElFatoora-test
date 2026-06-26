@@ -26,6 +26,7 @@ const digigo = require('./digigo');
 
 // TEIF non signe (unpretty) servi par le flux DigiGO ; on substitue un numero unique.
 const TEIF_UNSIGNED = process.env.TEIF_UNSIGNED_PATH || './TEIF_FAC_2024_003_1557686RAM000_v3_unsigned_unpretty.xml';
+let lastSignedXml = ''; // dernier XML signe DigiGO (diagnostic)
 
 const PORT = parseInt(process.env.PORT || '3000', 10);
 const WSDL = process.env.ELFATOORA_WSDL || 'https://test.elfatoora.tn/ElfatouraServices/EfactService?wsdl';
@@ -173,8 +174,14 @@ const server = http.createServer(async (req, res) => {
     try {
       const body = JSON.parse((await readBody(req)).toString('utf8'));
       const signedXml = await digigo.complete(body.xml, body.jwt, body.precomputed);
+      lastSignedXml = signedXml; // conserve pour diagnostic via /tuntrust/lastsigned
       return json(res, 200, { ok: true, signedXml });
     } catch (e) { return json(res, 500, { ok: false, error: String((e && e.message) || e) }); }
+  }
+
+  if (path === '/tuntrust/lastsigned') {
+    res.writeHead(200, { 'Content-Type': 'application/xml; charset=utf-8' });
+    return res.end(lastSignedXml);
   }
 
   if (path === '/tuntrust/test') {
@@ -225,14 +232,15 @@ async function run(){
     log('4) Depot saveEfact...');
     r=await fetch('/tuntrust/send',{method:'POST',headers:{'Content-Type':'application/xml'},body:c.signedXml});
     let dep=await r.text();
-    const idm=dep.match(/ID:\\s*(\\d+)/);log('   '+(idm?'ID '+idm[1]:'reponse: '+dep.slice(0,200)),idm?'ok':'ko');
-    if(!idm)return;
+    const idm=dep.match(/enregistree avec ID:\\s*(\\d+)/);
+    if(!idm){var fm=dep.match(/SERV\\d+[^"<\\n]*|CONTRL\\d+[^"<\\n]*|faultMessage[^,}<]*|L'objet OID[^"<\\n]*/i);log('   ECHEC depot: '+(fm?fm[0]:dep.slice(-350)),'ko');return;}
+    log('   ID '+idm[1],'ok');
     log('5) Consultation (ref TTN + QR)...');
     await new Promise(s=>setTimeout(s,9000));
     r=await fetch('/tuntrust/consult?idSaveEfact='+idm[1]);let con=await r.text();
-    const ref=con.match(/generatedRef[^:]*:\\s*(\\S+)/)||con.match(/<generatedRef>([^<]+)/);
-    log('   '+(ref?'ref TTN = '+ref[1]:'pas encore de ref (validation en cours)'),ref?'ok':'');
-    log('TERMINE.','ok');
+    const ref=con.match(/<generatedRef>([^<]+)/);
+    if(ref&&ref[1]){log('   ref TTN = '+ref[1],'ok');var cev=con.match(/<ReferenceCEV>([A-Za-z0-9+\\/=]+)/);if(cev)document.getElementById('qr').innerHTML='<h3>QR ElFatoora</h3><img src="data:image/png;base64,'+cev[1]+'">';log('FACTURE DIGIGO VALIDEE.','ok');}
+    else log('   pas encore de ref (validation en cours, reconsulter)','');
   }catch(e){log('ERREUR: '+(e.message||e),'ko');}
   document.getElementById('go').disabled=false;
 }
