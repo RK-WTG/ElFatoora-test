@@ -119,6 +119,8 @@ const server = http.createServer(async (req, res) => {
       try { xml = fs.readFileSync(XML_PATH); }
       catch (e) { return text(res, 500, 'XML introuvable: ' + XML_PATH + ' — ' + e.message); }
     }
+    // Conserve le XML signé déposé (voie USB ou DigiGO) pour /tuntrust/files/signed.
+    try { lastSignedXml = Buffer.isBuffer(xml) ? xml.toString('utf8') : String(xml); } catch (_) {}
 
     const { ok, log } = await runSaveEfact({
       wsdl: WSDL,
@@ -164,10 +166,24 @@ const server = http.createServer(async (req, res) => {
     return res.end(Buffer.from(m[1], 'base64'));
   }
 
+  // ============ Voie USB (clic2up-sign local) ============
+  // Fournit le TEIF non signe avec un docId unique ; la signature se fait cote navigateur via localhost:9876.
+  if (path === '/tuntrust/prepare-usb' && req.method === 'POST') {
+    try {
+      let xml = (await readBody(req)).toString('utf8').trim();
+      if (!xml) xml = fs.readFileSync(TEIF_UNSIGNED, 'utf8'); // fallback si aucun fichier uploade
+      const docId = 'FAC-USB-' + Date.now();
+      xml = xml.replace(/<DocumentIdentifier>[^<]*<\/DocumentIdentifier>/, `<DocumentIdentifier>${docId}</DocumentIdentifier>`);
+      lastUnsignedXml = xml; lastDocId = docId; lastFinalXml = ''; // nouveau parcours USB
+      return json(res, 200, { ok: true, docId, xml });
+    } catch (e) { return json(res, 500, { ok: false, error: String((e && e.message) || e) }); }
+  }
+
   // ============ Voie DigiGO ============
   if (path === '/tuntrust/prepare' && req.method === 'POST') {
     try {
-      let xml = fs.readFileSync(TEIF_UNSIGNED, 'utf8');
+      let xml = (await readBody(req)).toString('utf8').trim();
+      if (!xml) xml = fs.readFileSync(TEIF_UNSIGNED, 'utf8'); // fallback si aucun fichier uploade
       const docId = 'FAC-DIGIGO-' + Date.now();
       xml = xml.replace(/<DocumentIdentifier>[^<]*<\/DocumentIdentifier>/, `<DocumentIdentifier>${docId}</DocumentIdentifier>`);
       const { authorizeUrl, precomputed } = await digigo.prepare(xml);
@@ -201,12 +217,16 @@ const server = http.createServer(async (req, res) => {
     return res.end(lastSignedXml);
   }
 
-  if (path === '/tuntrust/test') {
+  if (path === '/tuntrust/test' || path === '/tuntrust/test-digigo') {
     res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
     return res.end(TEST_PAGE);
   }
+  if (path === '/tuntrust/test-usb') {
+    res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
+    return res.end(TEST_PAGE_USB);
+  }
 
-  return text(res, 404, 'Not found. Routes: /describe, /send, /consult, /tuntrust/test, /tuntrust/files/{unsigned,signed,final,qr}');
+  return text(res, 404, 'Not found. Routes: /describe, /send, /consult, /tuntrust/test-digigo, /tuntrust/test-usb, /tuntrust/files/{unsigned,signed,final,qr}');
 });
 
 function json(res, code, obj) {
@@ -227,20 +247,22 @@ button{background:#2563eb;color:#fff;border:0;border-radius:6px;padding:12px 20p
 button:disabled{opacity:.5;cursor:default}#log{white-space:pre-wrap;background:#f1f5f9;border-radius:8px;padding:14px;margin-top:16px;font-family:Consolas,monospace;font-size:13px}
 .ok{color:#16a34a}.ko{color:#dc2626}img{margin-top:12px;border:1px solid #e2e8f0}</style></head>
 <body><h1>Signature DigiGO &rarr; ElFatoora</h1>
-<p>Un clic : prepare &rarr; PIN+OTP (popup) &rarr; signHash &rarr; depot &rarr; QR.</p>
-<button id="go" onclick="run()">Signer une facture via DigiGO</button>
+<p>Choisissez un fichier XML (TEIF) &rarr; prepare &rarr; PIN+OTP (popup) &rarr; signHash &rarr; depot &rarr; QR.</p>
+<input type="file" id="file" accept=".xml,text/xml" style="display:none">
+<button id="go" onclick="document.getElementById('file').click()">Signer une facture via DigiGO</button>
 <div id="log"></div><div id="qr"></div>
 <script>
 const L=document.getElementById('log');
 function log(m,c){L.innerHTML+=(c?'<span class="'+c+'">'+m+'</span>':m)+"\\n";}
 let state={};
-async function run(){
+document.getElementById('file').addEventListener('change',function(ev){var f=ev.target.files[0];if(!f)return;var rd=new FileReader();rd.onload=function(){run(rd.result);};rd.readAsText(f);ev.target.value='';});
+async function run(uploadedXml){
   document.getElementById('go').disabled=true;L.innerHTML='';document.getElementById('qr').innerHTML='';
   const PW=720,PH=860; // taille popup TunTrust (la page DigiGO debordait en 520x760)
   const w=window.open('about:blank','digigo','width='+PW+',height='+PH+',scrollbars=yes,resizable=yes,left='+Math.max(0,((screen.width-PW)/2|0))+',top='+Math.max(0,((screen.height-PH)/2|0))); // ouvert DANS le geste (anti-bloqueur), centre
   try{
     log('1) Preparation (recuperation cert + hash)...');
-    let r=await fetch('/tuntrust/prepare',{method:'POST'});let p=await r.json();
+    let r=await fetch('/tuntrust/prepare',{method:'POST',headers:{'Content-Type':'application/xml'},body:uploadedXml});let p=await r.json();
     if(!p.ok)throw new Error(p.error);
     state={xml:p.xml,precomputed:p.precomputed,docId:p.docId};
     log('   docId='+p.docId+'  hash='+p.precomputed.signedInfoHash.slice(0,24)+'...','ok');
@@ -275,6 +297,64 @@ async function run(){
 }
 function waitJwt(){return new Promise((res,rej)=>{const t=setTimeout(()=>rej(new Error('timeout PIN/OTP (5 min)')),300000);
   window.addEventListener('message',function h(ev){if(ev.data&&ev.data.type==='tuntrust-jwt'){clearTimeout(t);window.removeEventListener('message',h);res(ev.data.jwt);}});});}
+</script></body></html>`;
+
+const TEST_PAGE_USB = `<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8">
+<title>Test signature Idtrust (cle USB) ElFatoora</title>
+<style>body{font-family:Segoe UI,sans-serif;max-width:820px;margin:30px auto;padding:0 16px;color:#1a1a2e}
+button{background:#2563eb;color:#fff;border:0;border-radius:6px;padding:12px 20px;font-size:16px;cursor:pointer}
+button:disabled{opacity:.5;cursor:default}input[type=password],input[type=text]{padding:8px;font-size:15px;border:1px solid #cbd5e1;border-radius:6px}
+#log{white-space:pre-wrap;background:#f1f5f9;border-radius:8px;padding:14px;margin-top:16px;font-family:Consolas,monospace;font-size:13px}
+.ok{color:#16a34a}.ko{color:#dc2626}img{margin-top:12px;border:1px solid #e2e8f0}</style></head>
+<body><h1>Signature Idtrust (cle USB) &rarr; ElFatoora</h1>
+<p>Choisissez un fichier XML (TEIF) &rarr; signature locale via clic2up-sign (cle USB) &rarr; depot &rarr; QR.</p>
+<p>PIN de la cle : <input type="password" id="pin"> &nbsp; driver (optionnel) : <input type="text" id="driver" placeholder="IDPrimePKCS1164.dll" size="22"></p>
+<input type="file" id="file" accept=".xml,text/xml" style="display:none">
+<button id="go" onclick="startPick()">Signer une facture via Idtrust</button>
+<div id="log"></div><div id="qr"></div>
+<script>
+const L=document.getElementById('log');
+function log(m,c){L.innerHTML+=(c?'<span class="'+c+'">'+m+'</span>':m)+"\\n";}
+const SIGN_URL='http://localhost:9876/sign';
+function startPick(){var pin=document.getElementById('pin').value.trim();if(!pin){log('Saisissez d\\'abord le PIN de la cle USB.','ko');return;}document.getElementById('file').click();}
+document.getElementById('file').addEventListener('change',function(ev){var f=ev.target.files[0];if(!f)return;var rd=new FileReader();rd.onload=function(){runUsb(rd.result);};rd.readAsText(f);ev.target.value='';});
+async function runUsb(uploadedXml){
+  document.getElementById('go').disabled=true;L.innerHTML='';document.getElementById('qr').innerHTML='';
+  const pin=document.getElementById('pin').value.trim();
+  const driver=document.getElementById('driver').value.trim();
+  try{
+    log('1) Preparation (docId + TEIF)...');
+    let r=await fetch('/tuntrust/prepare-usb',{method:'POST',headers:{'Content-Type':'application/xml'},body:uploadedXml});
+    let p=await r.json();if(!p.ok)throw new Error(p.error);
+    log('   docId='+p.docId,'ok');
+    log('2) Signature locale via cle USB (clic2up-sign localhost:9876)...');
+    var body={xml:p.xml,pin:pin};if(driver)body.driverPath=driver;
+    var sr;
+    try{sr=await fetch(SIGN_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});}
+    catch(e){throw new Error('clic2up-sign injoignable (localhost:9876) ou CORS bloque (api.clic2up.com non autorise). Verifiez que le service est lance + cle branchee.');}
+    var sc=await sr.json();
+    if(!sc.success)throw new Error(sc.message||sc.error||'Echec signature USB');
+    log('   XML signe Idtrust ('+sc.signedXml.length+' o)','ok');
+    log('3) Depot saveEfact...');
+    r=await fetch('/tuntrust/send',{method:'POST',headers:{'Content-Type':'application/xml'},body:sc.signedXml});
+    var dep=await r.text();
+    var idm=dep.match(/enregistree avec ID:\\s*(\\d+)/);
+    if(!idm){var fm=dep.match(/SERV\\d+[^"<\\n]*|CONTRL\\d+[^"<\\n]*|faultMessage[^,}<]*|L'objet OID[^"<\\n]*/i);log('   ECHEC depot: '+(fm?fm[0]:dep.slice(-350)),'ko');document.getElementById('go').disabled=false;return;}
+    log('   ID '+idm[1],'ok');
+    log('4) Consultation (ref TTN + QR)...');
+    await new Promise(s=>setTimeout(s,9000));
+    r=await fetch('/tuntrust/consult?idSaveEfact='+idm[1]);var con=await r.text();
+    var ref=con.match(/<generatedRef>([^<]+)/);
+    if(ref&&ref[1]){log('   ref TTN = '+ref[1],'ok');var cev=con.match(/<ReferenceCEV>([A-Za-z0-9+\\/=]+)/);if(cev)document.getElementById('qr').innerHTML='<h3>QR ElFatoora</h3><img src="data:image/png;base64,'+cev[1]+'">';log('FACTURE IDTRUST VALIDEE.','ok');
+      document.getElementById('qr').innerHTML+='<h3>Fichiers du parcours de signature</h3><ul>'+
+        '<li><a href="/tuntrust/files/unsigned" download>1 - TEIF non signe</a></li>'+
+        '<li><a href="/tuntrust/files/signed" download>2 - XML signe Idtrust (USB)</a></li>'+
+        '<li><a href="/tuntrust/files/final" download>3 - XML final TTN + QR</a></li>'+
+        '<li><a href="/tuntrust/files/qr" download>QR (PNG)</a></li></ul>';}
+    else log('   pas encore de ref (validation en cours, reconsulter)','');
+  }catch(e){log('ERREUR: '+(e.message||e),'ko');}
+  document.getElementById('go').disabled=false;
+}
 </script></body></html>`;
 
 const HOST = process.env.HOSTNAME || '0.0.0.0';
